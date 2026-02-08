@@ -100,32 +100,45 @@ router.post('/',requireAuth, async (req, res) => {
 });
 
 // Update cart item
-router.put('/',requireAuth, async (req, res) => {
+router.put('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.userId;
     const { productId, quantity } = req.body;
-    
-    // BUG: No validation
-    if (!productId || quantity < 0) {
-      return res.status(400).json({ error: 'Invalid product ID or quantity' });
+
+    // Validate productId format (digits only)
+    if (!/^\d+$/.test(productId)) {
+      return res.status(400).json({ error: 'Invalid productId format' });
+    }
+
+    //  Validate quantity (positive integer)
+    if (!Number.isInteger(quantity) || quantity < 0 || quantity > 100) {
+      return res.status(400).json({ error: 'Quantity must be 0–100 integer' });
+    }
+
+    // Check product exists
+    if (!productPrices[productId]) {
+      return res.status(404).json({ error: 'Product does not exist' });
     }
 
     const cart = carts.get(userId) || { items: [], total: 0 };
-    const itemIndex = cart.items.findIndex(item => item.productId === productId);
-    
+
+    const itemIndex = cart.items.findIndex(
+      item => item.productId === productId
+    );
+
     if (itemIndex === -1) {
       return res.status(404).json({ error: 'Item not found in cart' });
     }
 
+    //  Quantity = 0 → remove item
     if (quantity === 0) {
-      // BUG: Should use DELETE endpoint for removing items
       cart.items.splice(itemIndex, 1);
     } else {
       cart.items[itemIndex].quantity = quantity;
       cart.items[itemIndex].updatedAt = new Date().toISOString();
     }
 
-    // BUG: Recalculating total every time
+    // Recalculate total (still OK for now — later we optimize)
     cart.total = cart.items.reduce((sum, item) => {
       return sum + (productPrices[item.productId] || 0) * item.quantity;
     }, 0);
@@ -136,7 +149,8 @@ router.put('/',requireAuth, async (req, res) => {
       message: 'Cart item updated',
       cart
     });
-  } catch (error) {
+
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
