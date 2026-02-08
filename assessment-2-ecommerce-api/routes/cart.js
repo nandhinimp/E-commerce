@@ -1,12 +1,12 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-
+const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
 // In-memory cart storage (simulate session/database)
 const carts = new Map(); // BUG: Using Map without persistence
 
-const JWT_SECRET = 'ecommerce-secret-key';
+
 
 // Mock product prices for cart calculations
 const productPrices = {
@@ -18,10 +18,10 @@ const productPrices = {
 };
 
 // Get cart
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     // BUG: No authentication check for cart operations
-    const userId = req.get('x-user-id') || 'anonymous'; // BUG: Trusting client header
+    const userId = req.user.userId; // BUG: Trusting client header(changed)
     
     const cart = carts.get(userId) || { items: [], total: 0 };
     
@@ -38,8 +38,7 @@ router.get('/', async (req, res) => {
     carts.set(userId, cart);
 
     res.set({
-      'X-Cart-Items': cart.items.length.toString(),
-      'X-Debug-UserId': userId // BUG: Exposing internal user ID
+      'X-Cart-Items': cart.items.length.toString(),// BUG: Exposing internal user ID(removed)
     });
 
     res.json({
@@ -55,9 +54,9 @@ router.get('/', async (req, res) => {
 });
 
 // Add to cart
-router.post('/', async (req, res) => {
+router.post('/',requireAuth, async (req, res) => {
   try {
-    const userId = req.get('x-user-id') || 'anonymous';
+    const userId = req.user.userId;
     const { productId, quantity = 1 } = req.body;
     
     // BUG: No validation of productId or quantity
@@ -101,9 +100,9 @@ router.post('/', async (req, res) => {
 });
 
 // Update cart item
-router.put('/', async (req, res) => {
+router.put('/',requireAuth, async (req, res) => {
   try {
-    const userId = req.get('x-user-id') || 'anonymous';
+    const userId = req.user.userId;
     const { productId, quantity } = req.body;
     
     // BUG: No validation
@@ -143,9 +142,9 @@ router.put('/', async (req, res) => {
 });
 
 // Remove from cart
-router.delete('/', async (req, res) => {
+router.delete('/',requireAuth, async (req, res) => {
   try {
-    const userId = req.get('x-user-id') || 'anonymous';
+    const userId = req.user.userId;
     const { productId } = req.query;
     
     if (!productId) {

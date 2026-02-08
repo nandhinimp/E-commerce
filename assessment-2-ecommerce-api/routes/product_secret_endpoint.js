@@ -3,6 +3,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ const secretProducts = [
 const FINAL_PUZZLE = 'Pbatenghyngvbaf! Lbh sbhaq gur frperg cebqhpg qngn. Svany pyhrf: PURPX_NQZVA_CNARY_2024';
 
 // Secret product data endpoint
-router.get('/', async (req, res) => {
+router.get('/',requireAuth,requireAdmin, async (req, res) => {
   try {
     // Multiple access methods for the puzzle
     const authHeader = req.get('authorization');

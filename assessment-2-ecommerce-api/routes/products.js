@@ -1,6 +1,8 @@
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const express = require('express');
 const _ = require('lodash');
 const jwt = require('jsonwebtoken');
+
 
 const router = express.Router();
 
@@ -34,7 +36,7 @@ function generateProducts() {
 }
   generateProducts(); // Generate once at startup during server start to avoid performance issues on every request and deleted middleware so that products are not regenerated on every request
 
-const JWT_SECRET = 'ecommerce-secret-key'; // BUG: Hardcoded secret
+ // BUG: Hardcoded secret
 
 
 // Get all products
@@ -42,8 +44,8 @@ router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;// BUG: Default limit too high
-    if (limit >1)(limit =1);
-    if(limit <10)(limit =10);
+    if (limit > 30) limit = 30; 
+    if (limit < 1) limit = 1;
     const search = req.query.search;
     const category = req.query.category;
     const sortBy = req.query.sortBy || 'name';
@@ -101,8 +103,6 @@ router.get('/', async (req, res) => {
     // BUG: Exposing internal error details
     res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message, // BUG: Exposing error details
-      stack: error.stack // BUG: Exposing stack trace
     });
   }
 });
@@ -126,9 +126,7 @@ router.get('/:productId', async (req, res) => {
     }
 
     // BUG: Exposing internal data based on query parameter
-    const includeInternal = req.query.internal === 'yes';
-    
-    const responseData = includeInternal ? product : {
+    const responseData = {
       id: product.id,
       name: product.name,
       description: product.description,
@@ -139,19 +137,20 @@ router.get('/:productId', async (req, res) => {
       rating: product.rating,
       tags: product.tags,
       createdAt: product.createdAt
-    };
+  };
+
 
     res.json(responseData);
   } catch (error) {
     res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message
+
     });
   }
 });
 
 // Create product
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     // BUG: No authentication check
     // BUG: No input validation
@@ -181,18 +180,29 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       message: 'Product created successfully',
-      product: newProduct // BUG: Returning all internal data
+      product:{
+        id: newProduct.id,  
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        category: newProduct.category,
+        brand: newProduct.brand,
+        stock: newProduct.stock,
+        rating: newProduct.rating,
+        tags: newProduct.tags,
+        createdAt: newProduct.createdAt
+      }
     });
   } catch (error) {
     res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message
     });
   }
 });
 
+
 // Update product
-router.put('/:productId', async (req, res) => {
+router.put('/:productId', requireAuth, requireAdmin,  async (req, res) => {
   try {
     const { productId } = req.params;
     const updateData = req.body;
@@ -208,20 +218,32 @@ router.put('/:productId', async (req, res) => {
     // BUG: Allowing arbitrary field updates
     products[productIndex] = { ...products[productIndex], ...updateData };
 
+    const updated = products[productIndex];
+
     res.json({
       message: 'Product updated successfully',
-      product: products[productIndex] // BUG: Returning all data
+      product: {
+        id: updated.id,
+        name: updated.name,
+        description: updated.description,
+        price: updated.price,
+        category: updated.category,
+        brand: updated.brand,
+        stock: updated.stock,
+        rating: updated.rating,
+        tags: updated.tags,
+        createdAt: updated.createdAt
+      }
     });
   } catch (error) {
     res.status(500).json({ 
       error: 'Internal server error',
-      details: error.message
     });
   }
 });
 
 // Delete product
-router.delete('/:productId', async (req, res) => {
+router.delete('/:productId',requireAuth,requireAdmin, async (req, res) => {
   try {
     const { productId } = req.params;
     
