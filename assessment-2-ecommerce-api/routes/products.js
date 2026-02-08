@@ -7,12 +7,12 @@ const router = express.Router();
 // Large product dataset to demonstrate performance issues
 let products = [];
 
-// Generate sample products (performance issue - doing this on every request)
+// Generate sample products (run once at startup)
 function generateProducts() {
   const categories = ['Electronics', 'Clothing', 'Books', 'Home', 'Sports', 'Beauty'];
   const brands = ['BrandA', 'BrandB', 'BrandC', 'BrandD', 'BrandE'];
   
-  for (let i = 1; i <= 1000; i++) { // BUG: Generating 1000 products every time
+  for (let i = 1; i <= 1000; i++) { // 
     products.push({
       id: i.toString(),
       name: `Product ${i}`,
@@ -32,23 +32,18 @@ function generateProducts() {
     });
   }
 }
+  generateProducts(); // Generate once at startup during server start to avoid performance issues on every request and deleted middleware so that products are not regenerated on every request
 
 const JWT_SECRET = 'ecommerce-secret-key'; // BUG: Hardcoded secret
 
-// Middleware to ensure products are generated
-router.use((req, res, next) => {
-  // BUG: Regenerating products on every request (major performance issue)
-  if (products.length === 0) {
-    generateProducts();
-  }
-  next();
-});
 
 // Get all products
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50; // BUG: Default limit too high
+    let limit = parseInt(req.query.limit) || 10;// BUG: Default limit too high
+    if (limit >1)(limit =1);
+    if(limit <10)(limit =10);
     const search = req.query.search;
     const category = req.query.category;
     const sortBy = req.query.sortBy || 'name';
@@ -78,27 +73,23 @@ router.get('/', async (req, res) => {
     res.set({
       'X-Total-Count': filteredProducts.length.toString(),
       'X-Performance-Warning': 'This endpoint is slow, needs optimization', // HINT
-      'X-Secret-Query': 'try ?admin=true'
+      // 'X-Secret-Query': 'try ?admin=true'
     });
 
     res.json({
-      products: paginatedProducts.map(product => {
-        // BUG: Conditionally exposing admin data based on query param (security issue)
-        if (req.query.admin === 'true') {
-          return product; // Exposing all internal data
-        }
-        return {
-          id: product.id,
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category: product.category,
-          brand: product.brand,
-          stock: product.stock,
-          rating: product.rating,
-          tags: product.tags
-        };
-      }),
+      products: paginatedProducts.map(product => ({ 
+        // middleware on every request and admin true is removed 
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category,
+        brand: product.brand,
+        stock: product.stock,
+        rating: product.rating,
+        tags: product.tags
+      })),
+
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(filteredProducts.length / limit),
