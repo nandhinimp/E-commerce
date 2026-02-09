@@ -1,0 +1,32 @@
+meta {
+  name: Post
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3002/api/post/products
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: '''
+    Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbjEiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NzA1NjI4
+    MzMsImV4cCI6MTc3MDU2NjQzM30.E0L2r6NhzrgmJdrLh7l1I56UM3Ij6e_bVjj4S6HsSFA
+  '''
+}
+
+body:json {
+  {
+    "name": "Auth Test Product",
+    "price": 123,
+    "category": "Books"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
