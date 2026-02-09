@@ -1,272 +1,231 @@
-# 🛒 Assessment 2: E-commerce Product API
+# E-commerce Product API (Assessment Project)
 
-Welcome to the E-commerce Product API assessment! This project simulates a real-world e-commerce backend with **critical performance issues** and **security vulnerabilities** that you need to identify and fix.
+This project is a backend API built using Node.js and Express for an e-commerce product system.  
+It includes product listing, cart management, authentication, admin controls, performance fixes, and security improvements.
 
-## 🎯 Objective
+The original starter code had performance and security issues. Those were identified and fixed as part of the assessment work.
 
-Your mission is to:
-1. **🐛 Fix performance bottlenecks** that make the API slow
-2. **🔒 Patch security vulnerabilities** that expose sensitive data
-3. **⚡ Implement missing features** for a complete e-commerce experience
-4. **🧩 Solve hidden puzzles** throughout the application
+---
 
-## 🚀 Getting Started
+## Tech Stack Used
 
-### Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn
-- Netlify CLI (for local development)
+- Node.js
+- Express.js
+- JSON Web Token (JWT)
+- express-rate-limit
+- dotenv
+- lodash
 
-### Installation
+---
 
-```bash
+## Project Setup
+
+1. Clone the repository
+
+git clone <your-repo-url>
+
+2. Go inside the project folder
+
+cd assessment-2-ecommerce-api
+
+3. Install dependencies
+
 npm install
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the root folder and add:
+
+JWT_SECRET=your_secret_key_here
+PORT=3002
+
+You can use any random string as JWT_SECRET.
+
+---
+
+## Running the Server
+
+Start the server using:
+
 npm run dev
-```
 
-The API will be available at `http://localhost:8888`
+or
 
-## 📚 API Documentation
+node server.js
 
-### Product Management
+If everything runs correctly, you should see:
 
-#### GET /api/products
-Get paginated list of products with search and filtering
-```bash
-# Basic usage
-curl "http://localhost:8888/api/products"
+E-commerce Product API running on http://localhost:3002
 
-# With pagination and search
-curl "http://localhost:8888/api/products?page=1&limit=10&search=electronics&category=Electronics"
+---
 
-# Try the admin parameter (security issue!)
-curl "http://localhost:8888/api/products?admin=true"
-```
+## Base URL
 
-#### GET /api/products/:id
-Get single product by ID
-```bash
-curl "http://localhost:8888/api/products/1"
+http://localhost:3002
 
-# Try internal parameter (security issue!)
-curl "http://localhost:8888/api/products/1?internal=yes"
-```
+---
 
-#### POST /api/products
-Create new product
-```bash
-curl -X POST "http://localhost:8888/api/products" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"New Product","price":99.99,"category":"Electronics"}'
-```
+## Main API Endpoints
 
-### Cart Management
+### Products
 
-#### GET /api/cart
-Get user's cart
-```bash
-curl "http://localhost:8888/api/cart" \
-  -H "X-User-Id: user123"
-```
+Get all products with pagination and filters
 
-#### POST /api/cart
-Add item to cart
-```bash
-curl -X POST "http://localhost:8888/api/cart" \
-  -H "Content-Type: application/json" \
-  -H "X-User-Id: user123" \
-  -d '{"productId":"1","quantity":2}'
-```
+GET /api/products
 
-## 🐛 Critical Performance Issues
+Examples:
 
-### Major Performance Problems
-1. **Product Generation Bug** - 1000 products are generated on EVERY request
-2. **Inefficient Search** - Linear search through entire product array  
-3. **Memory Leaks** - No cleanup of generated data
-4. **Inefficient Sorting** - Re-sorting entire arrays unnecessarily
-5. **No Caching** - API responses aren't cached
-6. **Excessive Data Transfer** - Returning too much data per request
+/api/products?page=1&limit=10  
+/api/products?search=phone  
+/api/products?category=Electronics  
 
-### Cart Performance Issues
-7. **Inefficient Total Calculation** - Recalculating cart total every operation
-8. **No Data Persistence** - Using in-memory Map that doesn't persist
-9. **Price Lookup Inefficiency** - Fetching prices individually for each calculation
-10. **No Batch Operations** - Can't update multiple cart items at once
+---
 
-## 🔒 Critical Security Vulnerabilities
+Get single product
 
-### Data Exposure Issues
-1. **Internal Data Leakage** - Cost prices and supplier info exposed via query params
-2. **Admin Data Exposure** - `?admin=true` reveals sensitive internal data
-3. **Password/Token Hardcoding** - JWT secrets are hardcoded
-4. **Error Information Disclosure** - Stack traces and error details exposed
-5. **No Authentication** - Critical operations (create/update/delete) have no auth
+GET /api/products/:id
 
-### Input Security Issues  
-6. **No Input Validation** - Malicious data can be inserted
-7. **SQL Injection Simulation** - Product IDs not properly sanitized
-8. **Client-Controlled Data** - Trusting X-User-Id header from client
-9. **No Rate Limiting** - API vulnerable to abuse
-10. **Cross-User Data Access** - Users can access other users' cart data
+Example:
 
-## ⚡ Features to Implement
+/api/products/1
 
-### Must-Have Features
-1. **Authentication Middleware** - Proper JWT-based authentication
-2. **Product Caching System** - Cache frequently accessed products
-3. **Search Optimization** - Implement proper search indexing
-4. **Cart Persistence** - Proper database/storage for cart data
-5. **Input Validation** - Comprehensive validation for all endpoints
-6. **Error Handling** - Proper error responses without data leakage
+---
 
-### Nice-to-Have Features
-7. **Product Categories API** - Separate endpoint for managing categories
-8. **Inventory Management** - Track and update product stock levels
-9. **Order Management** - Convert carts to orders
-10. **Product Reviews** - Rating and review system for products
-11. **Wishlist Functionality** - Save products for later
-12. **Bulk Operations** - Batch create/update products
+Create product (Admin only)
 
-## 🧩 Puzzles & Hidden Challenges
+POST /api/products
 
-### Puzzle 1: Base64 Header Decoder 🔍
-Find the Base64 encoded message in the API response headers and decode it.
-- **Hint**: Check the `X-Puzzle-Hint` header
-- **Location**: `/api/products` response headers
-- **Challenge**: What endpoint does it reveal?
+Requires:
+Authorization header with admin JWT token
 
-### Puzzle 2: Secret Product Endpoint 🕵️
-Find and access the hidden endpoint for secret product data.
-- **Multiple Access Methods**: 
-  - Authorization header: `Bearer secret-admin-token`
-  - API Key header: `admin-api-key-2024`  
-  - Query parameter: `?secret=profit-data`
-- **Reward**: Access to internal profit margins and cost data
+Body example:
 
-### Puzzle 3: ROT13 Cipher 🔐
-Decode the ROT13 encrypted message from the secret endpoint.
-- **Tool Needed**: ROT13 decoder
-- **Message Location**: `finalPuzzle` field in secret endpoint response
-- **Final Clue**: Points to next challenge location
+{
+  "name": "New Item",
+  "price": 120,
+  "category": "Electronics"
+}
 
-### Puzzle 4: Hash Challenge 🧮
-The secret endpoint returns a time-based MD5 hash.
-- **Challenge**: Understand how it's generated
-- **Use Case**: Could be used for cache invalidation or security
+---
 
-## 🔧 Testing Your Solutions
+Update product (Admin only)
 
-### Performance Testing
-```bash
-# Test product generation performance
-time curl "http://localhost:8888/api/products"
+PUT /api/products/:id
 
-# Test search performance with common terms
-time curl "http://localhost:8888/api/products?search=product"
+---
 
-# Test large result sets
-time curl "http://localhost:8888/api/products?limit=1000"
-```
+Delete product (Admin only)
 
-### Security Testing
-```bash
-# Test admin data exposure
-curl "http://localhost:8888/api/products?admin=true"
+DELETE /api/products/:id
 
-# Test internal data access
-curl "http://localhost:8888/api/products/1?internal=yes"
+---
 
-# Test malicious product ID
-curl "http://localhost:8888/api/products/<script>alert('xss')</script>"
+## Cart Endpoints (Login Required)
 
-# Test secret endpoint access methods
-curl -H "Authorization: Bearer secret-admin-token" \
-     "http://localhost:8888/api/product_secret_endpoint"
-```
+All cart routes require JWT token.
 
-### Cart Security Testing
-```bash
-# Test cross-user data access
-curl -H "X-User-Id: victim" "http://localhost:8888/api/cart"
-curl -H "X-User-Id: attacker" "http://localhost:8888/api/cart"
-```
+Header:
 
-## 📝 Expected Solutions
+Authorization: Bearer <token>
 
-### Performance Optimizations
-1. **Implement Product Caching** - Generate products once, cache results
-2. **Add Search Indexing** - Use proper data structures for fast search
-3. **Optimize Database Queries** - Reduce redundant data fetching
-4. **Implement Response Caching** - Cache API responses for identical requests
-5. **Add Pagination Limits** - Enforce reasonable page sizes
+Get cart:
 
-### Security Fixes
-1. **Remove Debug Parameters** - Eliminate `?admin=true` and `?internal=yes`
-2. **Add Authentication** - Protect all write operations
-3. **Input Sanitization** - Validate and sanitize all user inputs
-4. **Secure Error Handling** - Remove stack traces from responses
-5. **Implement RBAC** - Role-based access control for admin operations
+GET /api/cart
 
-### Feature Implementations
-1. **JWT Middleware** - Proper token validation
-2. **User Context** - Secure user identification
-3. **Data Validation** - Comprehensive input validation
-4. **Audit Logging** - Track API usage and changes
+Add item:
 
-## 🏆 Bonus Challenges
+POST /api/cart
 
-### Advanced Security
-- **Rate Limiting** - Implement API rate limiting
-- **CORS Configuration** - Proper CORS settings
-- **SQL Injection Prevention** - Even though using in-memory data
-- **XSS Prevention** - Sanitize all user inputs
+{
+  "productId": "1",
+  "quantity": 2
+}
 
-### Advanced Performance
-- **Database Optimization** - If implementing real database
-- **CDN Integration** - For product images and static content
-- **Load Balancing** - Handle multiple concurrent users
-- **Metrics Collection** - Track API performance metrics
+Update quantity:
 
-### Advanced Features
-- **Real-time Inventory** - WebSocket updates for stock changes
-- **Recommendation Engine** - Suggest related products
-- **Advanced Search** - Fuzzy search, filters, faceted search
-- **Export Functionality** - Export product catalogs
+PUT /api/cart
 
-## 🚨 Common Pitfalls
+Remove item:
 
-1. **Don't just hide vulnerabilities** - Actually fix the root cause
-2. **Performance fixes should be measurable** - Use timing before/after
-3. **Maintain API compatibility** - Don't break existing functionality
-4. **Test edge cases** - Empty results, invalid inputs, etc.
-5. **Security by design** - Don't add security as an afterthought
+DELETE /api/cart?productId=1
 
-## 📊 Evaluation Criteria
+---
 
-### Code Quality (25%)
-- Clean, readable code
-- Proper error handling
-- Modern JavaScript features
+## Authentication
 
-### Security (25%)
-- All vulnerabilities properly fixed
-- No new security issues introduced
-- Proper authentication implementation
+JWT based authentication is used.
 
-### Performance (25%)
-- Measurable performance improvements
-- Efficient algorithms and data structures
-- Proper caching implementation
+A sample token generator file is included:
 
-### Feature Completeness (25%)
-- All required features implemented
-- Good user experience
-- Comprehensive testing
+token.js
 
-## 📞 Support
+Run:
 
-Document any assumptions you make and challenges you face. This helps us understand your problem-solving approach.
+node token.js
 
-**Good luck! May your code be performant and secure! 🚀**
+This prints:
+- admin token
+- normal user token
+
+Use these tokens in API tools like Bruno or Postman.
+
+---
+
+## Security Fixes Implemented
+
+- Removed admin query parameter bypass
+- Removed internal product data exposure
+- Added JWT authentication
+- Added admin role check for write operations
+- Input validation added
+- Error responses cleaned (no stack traces)
+- Secret endpoint protected
+- Rate limiting added
+
+---
+
+## Performance Improvements
+
+- Products generated once at startup (not per request)
+- Pagination limits enforced
+- Response caching added
+- Search indexing added
+- Cart total optimized (no repeated recalculation)
+
+---
+
+## Rate Limiting
+
+API has request limits enabled to prevent abuse.
+
+Too many requests will return HTTP 429.
+
+---
+
+## Testing
+
+You can test using:
+
+- Bruno
+- Postman
+- curl
+- Browser (for GET endpoints)
+
+Protected routes must include Authorization header.
+
+---
+
+## Notes
+
+This project was done as part of an assessment.  
+Focus was on fixing performance issues, removing security problems, and adding authentication and validation.
+
+Some data is stored in memory (Map objects) since database was not required for this task.
+
+Server restart will reset products and cart data.
+
+---
+
 
