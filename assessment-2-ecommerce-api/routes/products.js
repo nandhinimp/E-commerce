@@ -1,13 +1,13 @@
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const express = require('express');
 const _ = require('lodash');
-const jwt = require('jsonwebtoken');
-
-
 const router = express.Router();
 
 // Large product dataset to demonstrate performance issues
 let products = [];
+
+const productListCache = new Map();
+const searchIndex = new Map();
 
 // Generate sample products (run once at startup)
 function generateProducts() {
@@ -35,6 +35,22 @@ function generateProducts() {
   }
 }
   generateProducts(); // Generate once at startup during server start to avoid performance issues on every request and deleted middleware so that products are not regenerated on every request
+
+  function buildSearchIndex() {
+  products.forEach(p => {
+    const text = (p.name + ' ' + p.description).toLowerCase();
+    const words = text.split(/\W+/);
+
+    words.forEach(word => {
+      if (!searchIndex.has(word)) {
+        searchIndex.set(word, []);
+      }
+      searchIndex.get(word).push(p);
+    });
+  });
+}
+
+buildSearchIndex();
 
  // BUG: Hardcoded secret
 
@@ -71,20 +87,25 @@ router.get('/', async (req, res) => {
     if (limit > 30) limit = 30; 
     if (limit < 1) limit = 1;
     const search = req.query.search;
+    const category = req.query.category;
     const allowedSort = ['name','price','rating'];
     const sortBy = allowedSort.includes(req.query.sortBy)
       ? req.query.sortBy
       : 'name';
-    const sortOrder = req.query.sortOrder || 'asc';
+const sortOrder = req.query.sortOrder === 'desc' ? 'desc' : 'asc';
+    // Added cache so no recomputing again and again 
+    const cacheKey = JSON.stringify(req.query);
+    const cached = productListCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) {
+      return res.json(cached.data);
+    }
 
     let filteredProducts = products; // BUG: Not efficient, copying entire array
 
-    // BUG: Inefficient search - linear search through all products
+    // BUG: Inefficient search - linear search through all products(coreected by search index)
     if (search) {
-      filteredProducts = filteredProducts.filter(p => 
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase())
-      );
+      const term = search.toLowerCase();
+      filteredProducts = searchIndex.get(term) || [];
     }
 
     if (category) {
@@ -100,11 +121,11 @@ router.get('/', async (req, res) => {
 
     res.set({
       'X-Total-Count': filteredProducts.length.toString(),
-      'X-Performance-Warning': 'This endpoint is slow, needs optimization', // HINT
+      // 'X-Performance-Warning': 'This endpoint is slow, needs optimization', // HINT
       // 'X-Secret-Query': 'try ?admin=true'
     });
 
-    res.json({
+    const responseObject = {
       products: paginatedProducts.map(product => ({ 
         // middleware on every request and admin true is removed 
         id: product.id,
@@ -124,7 +145,14 @@ router.get('/', async (req, res) => {
         totalItems: filteredProducts.length,
         itemsPerPage: limit
       }
+    };
+
+    productListCache.set(cacheKey, {
+      data: responseObject,
+      expiry: Date.now() + 30 * 1000
     });
+
+    res.json(responseObject);
   } catch (error) {
     // BUG: Exposing internal error details
     res.status(500).json({ 
@@ -216,6 +244,10 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 
     products.push(newProduct);
 
+    productListCache.clear();
+    searchIndex.clear();
+    buildSearchIndex();
+
     res.status(201).json({
       message: 'Product created successfully',
       product:{
@@ -294,6 +326,10 @@ router.put('/:productId', requireAuth, requireAdmin,  async (req, res) => {
       }
     });
 
+    productListCache.clear();
+    searchIndex.clear();
+    buildSearchIndex();
+
 
     const updated = products[productIndex];
 
@@ -339,6 +375,10 @@ router.delete('/:productId',requireAuth,requireAdmin, async (req, res) => {
 
     products.splice(productIndex, 1);
 
+    productListCache.clear();
+    searchIndex.clear();
+    buildSearchIndex();
+
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     res.status(500).json({ 
@@ -348,3 +388,4 @@ router.delete('/:productId',requireAuth,requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.getProducts = () => products;
